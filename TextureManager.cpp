@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+#include "CrashMonitor.h"
+
 namespace {
 std::string lowerExtension(const std::string &path)
 {
@@ -103,8 +105,10 @@ std::shared_ptr<TextureManager::TextureResource> TextureManager::CreateTexture2D
     SDL_Surface *surface = loadImageFile(fullPath);
     if (surface == nullptr)
     {
+        std::string errorMessage = "Failed to load texture: " + fullPath;
         std::cerr << "[texture] failed to load '" << fullPath << "' (requested as '" << relativePath
                    << "'): " << SDL_GetError() << "\n";
+        CrashMonitor::Instance().RecordLastError(errorMessage);
         return nullptr;
     }
 
@@ -112,6 +116,10 @@ std::shared_ptr<TextureManager::TextureResource> TextureManager::CreateTexture2D
     SDL_DestroySurface(surface);
     if (converted == nullptr)
     {
+        std::string errorMessage = "Failed to convert texture: " + fullPath;
+        std::cerr << "[texture] failed to convert '" << fullPath << "' (requested as '" << relativePath
+                  << "'): " << SDL_GetError() << "\n";
+        CrashMonitor::Instance().RecordLastError(errorMessage);
         return nullptr;
     }
 
@@ -130,6 +138,10 @@ std::shared_ptr<TextureManager::TextureResource> TextureManager::CreateTexture2D
     SDL_GPUTexture *texture = SDL_CreateGPUTexture(m_device, &textureCreateInfo);
     if (texture == nullptr)
     {
+        std::string errorMessage = "Failed to create GPU texture: " + fullPath;
+        std::cerr << "[texture] failed to create GPU texture '" << fullPath << "' (requested as '" << relativePath
+                  << "'): " << SDL_GetError() << "\n";
+        CrashMonitor::Instance().RecordLastError(errorMessage);
         SDL_DestroySurface(converted);
         return nullptr;
     }
@@ -142,6 +154,10 @@ std::shared_ptr<TextureManager::TextureResource> TextureManager::CreateTexture2D
     SDL_GPUTransferBuffer *transferBuffer = SDL_CreateGPUTransferBuffer(m_device, &transferCreateInfo);
     if (transferBuffer == nullptr)
     {
+        std::string errorMessage = "Failed to create GPU transfer buffer for texture: " + fullPath;
+        std::cerr << "[texture] failed to create GPU transfer buffer for '" << fullPath << "' (requested as '" << relativePath
+                  << "'): " << SDL_GetError() << "\n";
+        CrashMonitor::Instance().RecordLastError(errorMessage);
         SDL_ReleaseGPUTexture(m_device, texture);
         SDL_DestroySurface(converted);
         return nullptr;
@@ -150,6 +166,10 @@ std::shared_ptr<TextureManager::TextureResource> TextureManager::CreateTexture2D
     void *mapped = SDL_MapGPUTransferBuffer(m_device, transferBuffer, false);
     if (mapped == nullptr)
     {
+        std::string errorMessage = "Failed to map GPU transfer buffer for texture: " + fullPath;
+        std::cerr << "[texture] failed to map GPU transfer buffer for '" << fullPath << "' (requested as '" << relativePath
+                  << "'): " << SDL_GetError() << "\n";
+        CrashMonitor::Instance().RecordLastError(errorMessage);
         SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
         SDL_ReleaseGPUTexture(m_device, texture);
         SDL_DestroySurface(converted);

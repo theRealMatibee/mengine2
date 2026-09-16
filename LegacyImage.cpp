@@ -187,6 +187,16 @@ void LegacyImage::SetColor(const SDL_FColor &color)
     ApplyColor(color);
 }
 
+void LegacyImage::SetVisible(bool visible)
+{
+    m_visible = visible;
+}
+
+bool LegacyImage::IsVisible() const
+{
+    return m_visible;
+}
+
 void LegacyImage::ResetAnimation()
 {
     m_animationTime = 0.0f;
@@ -1013,6 +1023,9 @@ SDL_FColor LegacyImage::ParseHexColor(const char *text, const SDL_FColor &fallba
         return fallback;
     }
 
+    // Bright yellow flags a malformed hex string at runtime, even if the log below goes unnoticed.
+    static constexpr SDL_FColor kMalformedColor{ 1.0f, 1.0f, 0.0f, 1.0f };
+
     std::string value(text);
     if (value.rfind("0x", 0) == 0 || value.rfind("0X", 0) == 0)
     {
@@ -1021,7 +1034,8 @@ SDL_FColor LegacyImage::ParseHexColor(const char *text, const SDL_FColor &fallba
 
     if (value.size() != 8)
     {
-        return fallback;
+        std::cerr << "[color] '" << text << "' is not a valid 0xRRGGBBAA hex color\n";
+        return kMalformedColor;
     }
 
     uint32_t packed = 0;
@@ -1030,7 +1044,8 @@ SDL_FColor LegacyImage::ParseHexColor(const char *text, const SDL_FColor &fallba
     ss >> packed;
     if (ss.fail())
     {
-        return fallback;
+        std::cerr << "[color] '" << text << "' is not a valid 0xRRGGBBAA hex color\n";
+        return kMalformedColor;
     }
 
     const float inv255 = 1.0f / 255.0f;

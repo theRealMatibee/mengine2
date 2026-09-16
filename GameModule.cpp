@@ -162,7 +162,7 @@ void GameModule::Render(SpriteBuffer *buffer) const
 
     for (const auto &kv : m_images)
     {
-        if (kv.second != nullptr)
+        if (kv.second != nullptr && kv.second->IsVisible())
         {
             kv.second->SetViewportSize(viewportWidth, viewportHeight);
             kv.second->RenderToBuffer(buffer);
@@ -549,60 +549,16 @@ bool GameModule::LoadSprites(tinyxml2::XMLElement *spritesElement)
         }
 
         std::unique_ptr<LegacyImage> image = std::make_unique<LegacyImage>(m_context.textureManager, m_context.shaderLibrary);
-        bool loaded = false;
 
-        const char *fileAttribute = spriteElement->Attribute("file");
-        if (fileAttribute != nullptr)
-        {
-            tinyxml2::XMLDocument imageDoc;
-            const std::string imagePath = ResolveResourcePath(Translation::Instance().Resolve(fileAttribute));
-            if (imageDoc.LoadFile(imagePath.c_str()) == tinyxml2::XML_SUCCESS)
-            {
-                const tinyxml2::XMLElement *imageElement = imageDoc.FirstChildElement("Image");
-                if (imageElement != nullptr)
-                {
-                    LegacyImageStyleLibrary emptyStyles;
-                    loaded = image->LoadFromXmlElement(imageElement, emptyStyles);
-                }
-            }
-        }
-        else
-        {
-            tinyxml2::XMLDocument tempDoc;
-            tinyxml2::XMLElement *imageElement = tempDoc.NewElement("Image");
-            for (const tinyxml2::XMLAttribute *attr = spriteElement->FirstAttribute();
-                 attr != nullptr;
-                 attr = attr->Next())
-            {
-                if (std::string(attr->Name()) == "name")
-                {
-                    continue;
-                }
-                imageElement->SetAttribute(attr->Name(), attr->Value());
-            }
-            for (const tinyxml2::XMLNode *child = spriteElement->FirstChild();
-                 child != nullptr;
-                 child = child->NextSibling())
-            {
-                imageElement->InsertEndChild(child->DeepClone(&tempDoc));
-            }
-            tempDoc.InsertEndChild(imageElement);
-
-            tinyxml2::XMLPrinter printer;
-            tempDoc.Print(&printer);
-
-            LegacyImageStyleLibrary emptyStyles;
-            loaded = image->LoadFromXmlString(printer.CStr(), emptyStyles);
-        }
-
-        if (loaded)
+        LegacyImageStyleLibrary emptyStyles;
+        if (image->LoadFromXmlElement(spriteElement, emptyStyles))
         {
             m_images[nameAttribute] = std::move(image);
         }
     }
-
     return true;
 }
+
 
 bool GameModule::LoadShaders(tinyxml2::XMLElement *shadersElement)
 {

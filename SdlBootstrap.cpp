@@ -3,12 +3,16 @@
 #include <SDL3_shadercross/SDL_shadercross.h>
 #endif
 
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+
 #include "SdlBootstrap.h"
 
 #include "AppLoop.h"
 #include "SpriteBuffer.h"
 #include "TextureManager.h"
 #include "CrashMonitor.h"
+#include "Registry.h"
 
 static const char *gBasePath = NULL;
 static constexpr bool kUseSolidColorDebugShader = false;
@@ -243,6 +247,22 @@ static bool InitializeGpuOnly(SdlBootstrapContext &context, bool fullscreen, con
         return false;
     }
 
+    CrashMonitor::Instance().RecordCheckpoint("SdlBootstrap::InitializeGpuOnly - before extracting GPU properties");
+    Registry::Instance().SetStringValue("gpu_driver", SDL_GetGPUDeviceDriver(device));
+
+#if SDL_VERSION_ATLEAST(3, 4, 0)
+    // SDL_GetGPUDeviceProperties requires SDL 3.4.0+; on older SDL3 these fields are unavailable.
+    SDL_PropertiesID gpu_props = SDL_GetGPUDeviceProperties(device);
+    if (gpu_props)
+    {
+        const char *gpu_name = SDL_GetStringProperty(gpu_props, SDL_PROP_GPU_DEVICE_NAME_STRING, "Unknown GPU");
+        const char *driver_name = SDL_GetStringProperty(gpu_props, SDL_PROP_GPU_DEVICE_DRIVER_NAME_STRING, "Unknown Driver");
+
+        Registry::Instance().SetStringValue("gpu_name", gpu_name);
+        Registry::Instance().SetStringValue("gpu_driver_vendor", driver_name);
+    }
+#endif
+
     CrashMonitor::Instance().RecordCheckpoint("SdlBootstrap::InitializeGpuOnly - before claiming window for GPU device");
     if (!SDL_ClaimWindowForGPUDevice(device, window))
     {
@@ -362,6 +382,8 @@ static bool InitializeGpuOnly(SdlBootstrapContext &context, bool fullscreen, con
 bool InitializeSdlAndGpu(SdlBootstrapContext &context, bool fullscreen, const SdlWindowConfig &windowConfig)
 {
     CrashMonitor::Instance().RecordCheckpoint("SdlBootstrap::SDL init");
+
+    Registry::Instance().SetIntValue("sdl_version", SDL_GetVersion() );
 
     SetVirtualResolution(windowConfig.virtualWidth, windowConfig.virtualHeight);
 

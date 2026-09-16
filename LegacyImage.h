@@ -86,6 +86,11 @@ public:
     void SetRotationRadians(float rotationRadians);
     void SetColor(const SDL_FColor &color);
 
+    // Lets a module opt an image out of GameModule::Render()'s automatic per-frame draw pass
+    // (e.g. a sprite the module repositions/hides itself and renders manually instead).
+    void SetVisible(bool visible);
+    bool IsVisible() const;
+
     void ResetAnimation();
     void Update(float deltaSeconds);
 
@@ -218,6 +223,7 @@ private:
     int m_widthPixels = 0;
     int m_heightPixels = 0;
     bool m_hollowFrame = false;
+    bool m_visible = true;
 
     SDL_FColor m_baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
     SDL_FColor m_currentColor = { 1.0f, 1.0f, 1.0f, 1.0f };
